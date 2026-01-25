@@ -12,7 +12,7 @@ spring:
       on-profile: dev
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/hk_electronics?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3307/hk_electronics?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
     hikari:
@@ -80,25 +80,181 @@ logging:
     name: logs/huakang-miniapp.log
 
 ---
+# 测试环境配置
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${TEST_DB_HOST:localhost}:${TEST_DB_PORT:3307}/${TEST_DB_NAME:hk_electronics_test}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${TEST_DB_USERNAME:root}
+    password: ${TEST_DB_PASSWORD:root}
+    hikari:
+      minimum-idle: 3
+      maximum-pool-size: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # Redis配置
+  data:
+    redis:
+      host: ${TEST_REDIS_HOST:localhost}
+      port: ${TEST_REDIS_PORT:6379}
+      password: ${TEST_REDIS_PASSWORD:}
+      database: 2
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+
+# MyBatis-Plus配置（测试环境）
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/**/*.xml
+
+# Knife4j配置
+knife4j:
+  enable: true
+  openapi:
+    title: 华康电器连锁积分小程序 - 小程序API（测试环境）
+    description: 微信小程序接口文档 - 测试环境
+    version: 1.0.0
+    contact:
+      name: huakang
+    license: Apache 2.0
+    license-url: https://www.apache.org/licenses/LICENSE-2.0.html
+    servers:
+      - url: http://test.example.com:8081
+        description: 测试环境
+
+# JWT配置
+jwt:
+  secret: huakang-electronics-test-secret-key-2024
+  expiration: 7200000 # 2小时（毫秒）
+
+# 应用配置
+server:
+  port: ${TEST_SERVER_PORT:8081}
+  servlet:
+    context-path: /api/miniapp
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.huakang: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    name: logs/huakang-miniapp-test.log
+
+---
 # 生产环境配置
 spring:
   config:
     activate:
       on-profile: prod
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:hk_electronics}?useUnicode=true&characterEncoding=utf8&useSSL=true&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:hk_electronics}?useUnicode=true&characterEncoding=utf8&useSSL=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=false
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
+    hikari:
+      minimum-idle: 10
+      maximum-pool-size: 50
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # Redis配置
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: -1ms
 
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+# MyBatis-Plus配置（生产环境）
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.nop.NoLoggingImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/**/*.xml
+
+# Knife4j配置（生产环境建议关闭或限制访问）
+knife4j:
+  enable: false
+  openapi:
+    title: 华康电器连锁积分小程序 - 小程序API
+    description: 微信小程序接口文档
+    version: 1.0.0
+    contact:
+      name: huakang
+    license: Apache 2.0
+    license-url: https://www.apache.org/licenses/LICENSE-2.0.html
+    servers:
+      - url: https://api.example.com
+        description: 生产环境
+
+# JWT配置
+jwt:
+  secret: ${JWT_SECRET:huakang-electronics-production-secret-key-2024-please-change}
+  expiration: 7200000 # 2小时（毫秒）
+
+# 应用配置
 server:
   port: ${SERVER_PORT:8081}
+  servlet:
+    context-path: /api/miniapp
 
+# 日志配置
 logging:
   level:
     root: INFO
     com.huakang: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    name: logs/huakang-miniapp-prod.log
+    max-size: 100MB
+    max-history: 30

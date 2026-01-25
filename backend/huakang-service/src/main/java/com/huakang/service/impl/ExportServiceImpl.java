@@ -5,9 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.huakang.common.exception.BusinessException;
 import com.huakang.mapper.entity.Member;
 import com.huakang.mapper.entity.PointsRecord;
-import com.huakang.mapper.mapper.MemberMapper;
-import com.huakang.mapper.mapper.PointsRecordMapper;
-import com.huakang.mapper.mapper.SystemConfigMapper;
+import com.huakang.mapper.MemberMapper;
+import com.huakang.mapper.PointsRecordMapper;
+import com.huakang.mapper.SystemConfigMapper;
 import com.huakang.mapper.entity.SystemConfig;
 import com.huakang.service.dto.export.ConsumptionRecordExportDTO;
 import com.huakang.service.dto.export.FinancialReportDTO;
@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -121,7 +122,7 @@ public class ExportServiceImpl implements ExportService {
                 // 计算消费金额（根据积分比例）
                 BigDecimal consumptionRatio = getConsumptionRatio();
                 // 消费金额 = 赠送积分 / 积分比例（例如：100积分 / 0.01 = 10000元）
-                BigDecimal amount = new BigDecimal(record.getPoints()).divide(consumptionRatio, 2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal amount = new BigDecimal(record.getPoints()).divide(consumptionRatio, 2, RoundingMode.HALF_UP);
                 dto.setAmount(amount);
 
                 // 查询会员信息
@@ -171,7 +172,7 @@ public class ExportServiceImpl implements ExportService {
             for (PointsRecord record : records) {
                 if ("消费赠送".equals(record.getChangeType())) {
                     // 消费金额 = 赠送积分 / 积分比例
-                    BigDecimal amount = new BigDecimal(record.getPoints()).divide(consumptionRatio, 2, BigDecimal.ROUND_HALF_UP);
+                    BigDecimal amount = new BigDecimal(record.getPoints()).divide(consumptionRatio, 2, RoundingMode.HALF_UP);
                     totalConsumption = totalConsumption.add(amount);
                     totalConsumptionPoints += record.getPoints();
                 }

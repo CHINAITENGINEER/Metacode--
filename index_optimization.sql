@@ -10,10 +10,9 @@ USE hk_electronics;
 -- 1. 会员表 (members) 索引优化
 -- ============================================
 
--- 1.1 最后登录时间索引（用于活跃用户查询）
-ALTER TABLE members ADD KEY `idx_last_login_at` (`last_login_at`);
+-- 注意：members表没有last_login_at字段，该字段只在admins和staffs表中
 
--- 1.2 复合索引：软删除 + 创建时间（用于列表查询优化）
+-- 1.1 复合索引：软删除 + 创建时间（用于列表查询优化）
 ALTER TABLE members ADD KEY `idx_deleted_created` (`is_deleted`, `created_at` DESC);
 
 -- ============================================

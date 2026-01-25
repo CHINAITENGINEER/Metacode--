@@ -1,6 +1,7 @@
 package com.huakang.admin.controller;
 
 import com.huakang.common.core.Result;
+import com.huakang.service.annotation.RequireRole;
 import com.huakang.service.service.ExportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 @RestController
 @RequestMapping("/export")
 @RequiredArgsConstructor
+@RequireRole("admin")  // 整个Controller仅管理员可访问
 public class ExportController {
 
     private final ExportService exportService;
