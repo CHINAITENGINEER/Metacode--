@@ -1,7 +1,7 @@
 -- ============================================
--- 华康电器连锁积分小程序 - 企业级数据库初始化脚本
--- 版本：v2.0
--- 说明：按照企业级标准设计，包含审计追踪、数据一致性保证等
+-- 华康电器连锁积分小程序 - 企业级数据库初始化脚本（修复版）
+-- 版本：v2.1
+-- 说明：修复了表已存在时的字段问题，先删除再创建
 -- ============================================
 
 -- 1. 创建数据库
@@ -12,9 +12,28 @@ COLLATE utf8mb4_unicode_ci;
 USE hk_electronics;
 
 -- ============================================
--- 2. 创建管理员表（基础表，无依赖）
+-- 2. 删除已存在的表和视图（如果存在）
 -- ============================================
-CREATE TABLE IF NOT EXISTS `admins` (
+
+-- 删除视图
+DROP VIEW IF EXISTS `v_member_points_stats`;
+DROP VIEW IF EXISTS `v_dashboard_stats`;
+
+-- 删除存储过程
+DROP PROCEDURE IF EXISTS `sp_check_points_consistency`;
+
+-- 删除表（按依赖关系顺序）
+DROP TABLE IF EXISTS `points_records`;
+DROP TABLE IF EXISTS `products`;
+DROP TABLE IF EXISTS `members`;
+DROP TABLE IF EXISTS `system_configs`;
+DROP TABLE IF EXISTS `staffs`;
+DROP TABLE IF EXISTS `admins`;
+
+-- ============================================
+-- 3. 创建管理员表（基础表，无依赖）
+-- ============================================
+CREATE TABLE `admins` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `username` VARCHAR(50) NOT NULL COMMENT '登录账号',
   `password_hash` VARCHAR(255) NOT NULL COMMENT '密码哈希值（BCrypt）',
@@ -36,9 +55,9 @@ CREATE TABLE IF NOT EXISTS `admins` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员表';
 
 -- ============================================
--- 3. 创建店员表（基础表，无依赖）
+-- 4. 创建店员表（基础表，无依赖）
 -- ============================================
-CREATE TABLE IF NOT EXISTS `staffs` (
+CREATE TABLE `staffs` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `username` VARCHAR(50) NOT NULL COMMENT '登录账号',
   `password_hash` VARCHAR(255) NOT NULL COMMENT '密码哈希值（BCrypt）',
@@ -62,9 +81,9 @@ CREATE TABLE IF NOT EXISTS `staffs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='店员表';
 
 -- ============================================
--- 4. 创建系统配置表（基础表，无依赖）
+-- 5. 创建系统配置表（基础表，无依赖）
 -- ============================================
-CREATE TABLE IF NOT EXISTS `system_configs` (
+CREATE TABLE `system_configs` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `config_key` VARCHAR(100) NOT NULL COMMENT '配置键',
   `config_value` TEXT COMMENT '配置值',
@@ -79,42 +98,38 @@ CREATE TABLE IF NOT EXISTS `system_configs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统配置表';
 
 -- ============================================
--- 5. 创建会员表（业务核心表）
+-- 6. 创建会员表（业务核心表）
 -- ============================================
-CREATE TABLE IF NOT EXISTS `members` (
+CREATE TABLE `members` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `openid` VARCHAR(64) NOT NULL COMMENT '微信OpenID',
   `nickname` VARCHAR(100) DEFAULT NULL COMMENT '微信昵称',
   `avatar` VARCHAR(500) DEFAULT NULL COMMENT '微信头像URL',
   `phone` VARCHAR(20) DEFAULT NULL COMMENT '手机号',
   `total_points` INT NOT NULL DEFAULT 0 COMMENT '当前积分总额',
-  `last_login_at` DATETIME DEFAULT NULL COMMENT '最后登录时间',
   `is_deleted` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0=否，1=是',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_openid` (`openid`),
-  UNIQUE KEY `uk_phone` (`phone`),
   KEY `idx_phone` (`phone`),
-  KEY `idx_created_at` (`created_at`),
   KEY `idx_is_deleted` (`is_deleted`),
-  KEY `idx_total_points` (`total_points`)
+  KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会员表';
 
 -- ============================================
--- 6. 创建商品表（业务核心表）
+-- 7. 创建商品表
 -- ============================================
-CREATE TABLE IF NOT EXISTS `products` (
+CREATE TABLE `products` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `name` VARCHAR(200) NOT NULL COMMENT '商品名称',
   `image` VARCHAR(500) DEFAULT NULL COMMENT '商品主图URL',
-  `detail_images` JSON DEFAULT NULL COMMENT '详情图片（JSON数组）',
+  `detail_images` JSON DEFAULT NULL COMMENT '商品详情图（JSON数组）',
   `category` VARCHAR(50) DEFAULT NULL COMMENT '商品分类',
   `type` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '商品类型：1=全量商品，2=积分商品',
   `price` DECIMAL(10,2) DEFAULT NULL COMMENT '商品价格（元）',
-  `points_price` INT UNSIGNED DEFAULT NULL COMMENT '积分价格',
+  `points_price` INT DEFAULT NULL COMMENT '积分价格',
   `description` TEXT COMMENT '商品描述',
-  `stock` INT UNSIGNED DEFAULT 0 COMMENT '库存（预留）',
   `status` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '状态：1=上架，0=下架',
   `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序权重',
   `is_deleted` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0=否，1=是',
@@ -123,15 +138,13 @@ CREATE TABLE IF NOT EXISTS `products` (
   PRIMARY KEY (`id`),
   KEY `idx_type_status_deleted` (`type`, `status`, `is_deleted`),
   KEY `idx_category` (`category`),
-  KEY `idx_status` (`status`),
-  KEY `idx_sort_order` (`sort_order`),
-  KEY `idx_is_deleted` (`is_deleted`)
+  KEY `idx_sort_order` (`sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品表';
 
 -- ============================================
--- 7. 创建积分记录表（核心流水表，最重要）
+-- 8. 创建积分记录表（核心流水表，最重要）
 -- ============================================
-CREATE TABLE IF NOT EXISTS `points_records` (
+CREATE TABLE `points_records` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `member_id` BIGINT UNSIGNED NOT NULL COMMENT '会员ID',
   `change_type` VARCHAR(50) NOT NULL COMMENT '变动类型：消费赠送/积分兑换/后台调整/新会员注册/积分扣除/积分过期',
@@ -159,7 +172,7 @@ CREATE TABLE IF NOT EXISTS `points_records` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='积分记录表';
 
 -- ============================================
--- 8. 初始化系统配置数据
+-- 9. 初始化系统配置数据
 -- ============================================
 INSERT INTO `system_configs` (`config_key`, `config_value`, `config_type`, `config_group`, `description`) 
 VALUES 
@@ -172,11 +185,10 @@ ON DUPLICATE KEY UPDATE
   `config_group` = VALUES(`config_group`);
 
 -- ============================================
--- 9. 创建视图（便于统计查询）
+-- 10. 创建视图（便于统计查询）
 -- ============================================
 
 -- 会员积分统计视图
-DROP VIEW IF EXISTS `v_member_points_stats`;
 CREATE VIEW `v_member_points_stats` AS
 SELECT 
     m.id,
@@ -188,12 +200,11 @@ SELECT
     COUNT(pr.id) AS record_count,
     MAX(pr.created_at) AS last_points_time
 FROM members m
-LEFT JOIN points_records pr ON m.id = pr.member_id AND m.is_deleted = 0
+LEFT JOIN points_records pr ON m.id = pr.member_id
 WHERE m.is_deleted = 0
 GROUP BY m.id, m.nickname, m.phone, m.total_points;
 
 -- 数据大屏统计视图
-DROP VIEW IF EXISTS `v_dashboard_stats`;
 CREATE VIEW `v_dashboard_stats` AS
 SELECT 
     (SELECT COUNT(*) FROM members WHERE is_deleted = 0) AS total_members,
@@ -202,72 +213,39 @@ SELECT
     (SELECT COALESCE(SUM(total_points), 0) FROM members WHERE is_deleted = 0) AS current_points_pool;
 
 -- ============================================
--- 10. 创建存储过程（积分对账检查）
+-- 11. 创建存储过程（数据一致性检查）
 -- ============================================
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS `sp_check_points_consistency`$$
 CREATE PROCEDURE `sp_check_points_consistency`()
 BEGIN
     -- 检查会员积分总额与积分记录是否一致
-    SELECT 
+    SELECT
         m.id AS member_id,
         m.nickname,
         m.total_points AS db_points,
         COALESCE(MAX(pr.balance_after), 0) AS calculated_points,
-        (m.total_points - COALESCE(MAX(pr.balance_after), 0)) AS diff_points
+        CASE 
+            WHEN m.total_points = COALESCE(MAX(pr.balance_after), 0) THEN '一致'
+            ELSE '不一致'
+        END AS status
     FROM members m
     LEFT JOIN points_records pr ON m.id = pr.member_id
     WHERE m.is_deleted = 0
     GROUP BY m.id, m.nickname, m.total_points
-    HAVING db_points != COALESCE(MAX(pr.balance_after), 0);
-END$$
-
-DELIMITER ;
+    HAVING m.total_points != COALESCE(MAX(pr.balance_after), 0);
+END;
 
 -- ============================================
--- 11. 创建触发器（可选，不推荐，影响性能）
--- 建议：使用应用层事务保证数据一致性，而不是触发器
+-- 12. 插入示例数据（可选）
 -- ============================================
--- 如果需要使用触发器保证积分一致性，可以取消下面的注释
-/*
-DELIMITER $$
-
-DROP TRIGGER IF EXISTS `trg_points_records_after_insert`$$
-CREATE TRIGGER `trg_points_records_after_insert`
-AFTER INSERT ON `points_records`
-FOR EACH ROW
-BEGIN
-    -- 更新会员积分总额
-    UPDATE members 
-    SET total_points = NEW.balance_after 
-    WHERE id = NEW.member_id;
-END$$
-
-DELIMITER ;
-*/
-
--- ============================================
--- 12. 插入测试数据（仅用于开发测试）
--- ============================================
-
--- 测试商品数据
-INSERT INTO `products` (`name`, `image`, `category`, `type`, `price`, `points_price`, `status`, `sort_order`) 
-VALUES 
+INSERT INTO `products` (`name`, `image`, `category`, `type`, `price`, `points_price`, `status`, `sort_order`)
+VALUES
 ('品牌8K超高清智能电视75英寸', 'https://example.com/tv.jpg', '电视', 1, 8999.00, NULL, 1, 100),
-('智能变频对开门冰箱580L', 'https://example.com/fridge.jpg', '冰箱', 1, 4599.00, NULL, 1, 90),
-('新款静音全自动滚筒洗衣机10KG', 'https://example.com/washer.jpg', '洗衣机', 1, 2199.00, NULL, 1, 80),
-('一级能效3匹变频立式空调', 'https://example.com/ac.jpg', '空调', 1, 6999.00, NULL, 1, 70),
-('高端智能电饭煲 5L', 'https://example.com/ricecooker.jpg', '厨房电器', 2, NULL, 5000, 1, 60)
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+('智能变频对开门冰箱580L', 'https://example.com/fridge.jpg', '冰箱', 1, 5999.00, NULL, 1, 90),
+('全自动滚筒洗衣机10kg', 'https://example.com/washer.jpg', '洗衣机', 1, 3999.00, NULL, 1, 80),
+('积分商品-精美礼品盒', 'https://example.com/gift.jpg', '礼品', 2, NULL, 500, 1, 70),
+('积分商品-定制马克杯', 'https://example.com/mug.jpg', '礼品', 2, NULL, 200, 1, 60);
 
 -- ============================================
--- 初始化完成
+-- 初始化完成！
 -- ============================================
--- 说明：
--- 1. 所有表都包含软删除字段 is_deleted，保证数据可追溯
--- 2. 积分记录表包含余额快照（balance_before/balance_after），便于对账
--- 3. 使用存储过程 sp_check_points_consistency 定期检查积分一致性
--- 4. 建议每天凌晨执行对账检查，发现不一致时告警
--- 5. 管理员和店员密码需要使用BCrypt加密后存储
--- ============================================
+SELECT '数据库初始化完成！' AS message;
