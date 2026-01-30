@@ -16,6 +16,8 @@ import com.huakang.service.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,7 +68,13 @@ public class MemberServiceImpl implements MemberService {
         return pageResult;
     }
 
+    /**
+     * 获取会员详情（带缓存）
+     * 缓存key: members::id:{memberId}
+     * 过期时间: 10分钟（在RedisConfig中配置）
+     */
     @Override
+    @Cacheable(value = "members", key = "'id:' + #memberId", unless = "#result == null")
     public MemberVO getMemberById(Long memberId) {
         Member member = memberMapper.selectById(memberId);
         if (member == null || member.getIsDeleted() == 1) {
@@ -128,8 +136,12 @@ public class MemberServiceImpl implements MemberService {
         return convertToVO(member);
     }
 
+    /**
+     * 调整会员积分（更新时清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "members", key = "'id:' + #memberId")
     public MemberVO adjustPoints(Long memberId, PointsAdjustDTO adjustDTO, Long operatorId, String operatorName, String operatorType, String ipAddress) {
         // 查询会员
         Member member = memberMapper.selectById(memberId);

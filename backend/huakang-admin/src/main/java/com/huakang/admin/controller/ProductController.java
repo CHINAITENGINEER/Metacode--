@@ -7,12 +7,14 @@ import com.huakang.service.dto.product.CreateProductDTO;
 import com.huakang.service.dto.product.ProductListDTO;
 import com.huakang.service.dto.product.ProductVO;
 import com.huakang.service.dto.product.UpdateProductDTO;
+import com.huakang.service.service.OssService;
 import com.huakang.service.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 商品管理控制器
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProductController {
 
     private final ProductService productService;
+    private final OssService ossService;
 
     /**
      * 分页查询商品列表
@@ -81,14 +84,12 @@ public class ProductController {
     }
 
     /**
-     * 图片上传接口（预留）
-     * 注意：图片存储位置（OSS/OBS）待确定，暂时返回提示
+     * 图片上传接口
      */
-    @Operation(summary = "图片上传", description = "上传商品图片（OSS/OBS存储，待配置）")
+    @Operation(summary = "图片上传", description = "上传商品图片到OSS，返回图片URL")
     @PostMapping("/upload")
-    public Result<String> uploadImage(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
-        // TODO: 实现图片上传到OSS或OBS
-        // 暂时返回提示信息
-        return Result.error("图片上传功能待实现，请先配置OSS或OBS存储");
+    public Result<String> uploadImage(@RequestParam("file") MultipartFile file) {
+        String imageUrl = ossService.uploadImage(file, "products");
+        return Result.success("上传成功", imageUrl);
     }
 }

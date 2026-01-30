@@ -22,4 +22,10 @@ public class LoginDTO {
      */
     @NotBlank(message = "密码不能为空")
     private String password;
+
+    /**
+     * 用户类型（可选）：admin-管理员，staff-店员
+     * 如果不指定，系统会自动判断（先尝试管理员，再尝试店员）
+     */
+    private String userType;
 }

@@ -42,8 +42,6 @@ public class SecurityConfig {
                     "/swagger-resources/**",
                     "/webjars/**"
                 ).permitAll()
-                // 允许访问测试接口
-                .requestMatchers("/test/**").permitAll()
                 // 允许访问登录接口
                 .requestMatchers("/auth/**").permitAll()
                 // 其他所有请求需要认证

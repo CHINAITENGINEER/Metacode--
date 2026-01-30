@@ -73,8 +73,18 @@ knife4j:
 
 # JWT配置
 jwt:
-  secret: huakang-electronics-secret-key-2024-please-change-in-production
-  expiration: 7200000 # 2小时（毫秒）
+  secret: ${JWT_SECRET:huakang-electronics-dev-secret-key}
+  expiration: ${JWT_EXPIRATION:7200000} # 2小时（毫秒）
+
+# 阿里云OSS配置
+aliyun:
+  oss:
+    endpoint: ${OSS_ENDPOINT:} # OSS地域节点，示例：https://oss-cn-hangzhou.aliyuncs.com
+    access-key-id: ${OSS_ACCESS_KEY_ID:} # AccessKey ID
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:} # AccessKey Secret
+    bucket-name: ${OSS_BUCKET_NAME:} # 存储桶名称
+    domain: ${OSS_DOMAIN:} # 文件访问域名（可选，CDN域名或OSS域名），示例：https://your-bucket.oss-cn-hangzhou.aliyuncs.com
+    path-prefix: ${OSS_PATH_PREFIX:images/} # 文件上传路径前缀
 
 # 应用配置
 server:
@@ -165,6 +175,16 @@ jwt:
   secret: huakang-electronics-test-secret-key-2024
   expiration: 7200000 # 2小时（毫秒）
 
+# 阿里云OSS配置
+aliyun:
+  oss:
+    endpoint: ${OSS_ENDPOINT:}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    bucket-name: ${OSS_BUCKET_NAME:}
+    domain: ${OSS_DOMAIN:}
+    path-prefix: ${OSS_PATH_PREFIX:images/}
+
 # 应用配置
 server:
   port: ${TEST_SERVER_PORT:8080}
@@ -253,6 +273,16 @@ knife4j:
 jwt:
   secret: ${JWT_SECRET:huakang-electronics-production-secret-key-2024-please-change}
   expiration: 7200000 # 2小时（毫秒）
+
+# 阿里云OSS配置
+aliyun:
+  oss:
+    endpoint: ${OSS_ENDPOINT:}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    bucket-name: ${OSS_BUCKET_NAME:}
+    domain: ${OSS_DOMAIN:}
+    path-prefix: ${OSS_PATH_PREFIX:images/}
 
 # 应用配置
 server:

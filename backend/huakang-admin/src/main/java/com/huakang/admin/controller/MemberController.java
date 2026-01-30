@@ -3,6 +3,7 @@ package com.huakang.admin.controller;
 import com.huakang.common.core.PageResult;
 import com.huakang.common.core.Result;
 import com.huakang.service.annotation.RequireRole;
+import com.huakang.service.annotation.RequireSignature;
 import com.huakang.service.dto.member.CreateMemberDTO;
 import com.huakang.service.dto.member.MemberListDTO;
 import com.huakang.service.dto.member.MemberVO;
@@ -84,6 +85,7 @@ public class MemberController {
      */
     @Operation(summary = "调整积分", description = "对指定会员进行积分增加、扣除或直接设置")
     @PostMapping("/{id}/points/adjust")
+    @RequireSignature // 关键接口，启用请求签名校验
     public Result<MemberVO> adjustPoints(
             @PathVariable Long id,
             @Valid @RequestBody PointsAdjustDTO adjustDTO,

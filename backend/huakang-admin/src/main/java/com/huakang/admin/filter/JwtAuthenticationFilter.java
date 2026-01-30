@@ -60,16 +60,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         // 设置到Spring Security上下文
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                         
-                        log.debug("JWT认证成功: username={}, role={}", username, role);
+                        log.debug("JWT认证成功: username={}, role={}, userId={}", username, role, userId);
+                    } else {
+                        log.warn("JWT Token中缺少用户信息: username={}, role={}, userId={}", username, role, userId);
                     }
                 } else {
-                    log.warn("JWT Token已过期或无效");
+                    // Token验证失败，尝试解析获取更详细的错误信息
+                    try {
+                        io.jsonwebtoken.Claims claims = jwtUtils.getClaimsFromToken(token);
+                        if (claims.getExpiration().before(new java.util.Date())) {
+                            log.warn("JWT Token已过期: 过期时间={}, 当前时间={}", 
+                                    claims.getExpiration(), new java.util.Date());
+                        } else {
+                            log.warn("JWT Token验证失败: Token格式可能不正确");
+                        }
+                    } catch (Exception e) {
+                        log.warn("JWT Token解析失败: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+                    }
                 }
+            } catch (io.jsonwebtoken.ExpiredJwtException e) {
+                log.warn("JWT Token已过期: 过期时间={}, 当前时间={}", 
+                        e.getClaims().getExpiration(), new java.util.Date());
+                SecurityContextHolder.clearContext();
+            } catch (io.jsonwebtoken.security.SignatureException e) {
+                log.warn("JWT Token签名无效: 请检查JWT密钥配置是否正确");
+                SecurityContextHolder.clearContext();
+            } catch (io.jsonwebtoken.MalformedJwtException e) {
+                log.warn("JWT Token格式错误: {}", e.getMessage());
+                SecurityContextHolder.clearContext();
             } catch (Exception e) {
-                log.warn("JWT Token验证失败: {}", e.getMessage());
+                log.warn("JWT Token验证失败: {} - {}", e.getClass().getSimpleName(), e.getMessage());
                 // Token无效，清除认证上下文，让Spring Security处理
                 SecurityContextHolder.clearContext();
             }
+        } else {
+            log.debug("请求中未包含JWT Token，请求路径: {}", request.getRequestURI());
         }
         
         // 继续过滤器链

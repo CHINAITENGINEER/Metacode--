@@ -4,12 +4,14 @@ import com.huakang.common.core.Result;
 import com.huakang.service.annotation.RequireRole;
 import com.huakang.service.dto.system.SystemConfigVO;
 import com.huakang.service.dto.system.UpdateSystemConfigDTO;
+import com.huakang.service.service.OssService;
 import com.huakang.service.service.SystemConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ import java.util.List;
 public class SystemConfigController {
 
     private final SystemConfigService systemConfigService;
+    private final OssService ossService;
 
     /**
      * 获取所有系统配置
@@ -72,24 +75,23 @@ public class SystemConfigController {
     /**
      * 上传企业微信二维码
      */
-    @Operation(summary = "上传二维码", description = "上传企业微信二维码（OSS/OBS存储，待配置）")
+    @Operation(summary = "上传二维码", description = "上传企业微信二维码到OSS")
     @PostMapping("/wechat-qrcode")
-    public Result<SystemConfigVO> uploadWechatQrcode(@RequestParam String imageUrl) {
-        // TODO: 实现图片上传到OSS或OBS，然后保存URL
-        // 暂时直接使用传入的URL
+    public Result<SystemConfigVO> uploadWechatQrcode(@RequestParam("file") MultipartFile file) {
+        // 上传图片到OSS
+        String imageUrl = ossService.uploadImage(file, "qrcode");
+        // 保存到系统配置
         SystemConfigVO config = systemConfigService.uploadWechatQrcode(imageUrl);
         return Result.success("上传成功", config);
     }
 
     /**
-     * 图片上传接口（预留）
-     * 注意：图片存储位置（OSS/OBS）待确定，暂时返回提示
+     * 图片上传接口
      */
-    @Operation(summary = "图片上传", description = "上传图片到OSS或OBS（待配置）")
+    @Operation(summary = "图片上传", description = "上传图片到OSS，返回图片URL")
     @PostMapping("/upload")
-    public Result<String> uploadImage(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
-        // TODO: 实现图片上传到OSS或OBS
-        // 暂时返回提示信息
-        return Result.error("图片上传功能待实现，请先配置OSS或OBS存储");
+    public Result<String> uploadImage(@RequestParam("file") MultipartFile file) {
+        String imageUrl = ossService.uploadImage(file, "common");
+        return Result.success("上传成功", imageUrl);
     }
 }

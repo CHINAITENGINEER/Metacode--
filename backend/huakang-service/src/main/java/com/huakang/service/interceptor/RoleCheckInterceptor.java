@@ -60,12 +60,18 @@ public class RoleCheckInterceptor implements HandlerInterceptor {
 
         String currentRole = userContext.getCurrentUserRole(request);
         if (currentRole == null) {
-            throw new BusinessException("未登录或Token无效");
+            // 检查是否有Token
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                throw new BusinessException("未登录，请先登录获取Token");
+            } else {
+                throw new BusinessException("Token无效或已过期，请重新登录");
+            }
         }
 
         List<String> allowedRolesList = Arrays.asList(allowedRoles);
         if (!allowedRolesList.contains(currentRole)) {
-            throw new BusinessException("无权限访问此接口，需要角色：" + Arrays.toString(allowedRoles));
+            throw new BusinessException("无权限访问此接口，需要角色：" + Arrays.toString(allowedRoles) + "，当前角色：" + currentRole);
         }
     }
 }

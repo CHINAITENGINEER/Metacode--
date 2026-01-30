@@ -1,8 +1,8 @@
 package com.huakang.common.core;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.slf4j.MDC;
 
 import java.io.Serializable;
 
@@ -13,7 +13,6 @@ import java.io.Serializable;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Result<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -32,6 +31,33 @@ public class Result<T> implements Serializable {
      * 响应数据
      */
     private T data;
+
+    /**
+     * 响应时间戳（毫秒）
+     */
+    private Long timestamp;
+
+    /**
+     * 请求ID（可选，用于链路追踪）
+     */
+    private String requestId;
+
+    /**
+     * TraceId（可选，用于日志关联）
+     */
+    private String traceId;
+
+    /**
+     * 私有构造方法，统一设置基础字段和追踪信息
+     */
+    private Result(Integer code, String message, T data) {
+        this.code = code;
+        this.message = message;
+        this.data = data;
+        this.timestamp = System.currentTimeMillis();
+        this.requestId = MDC.get("requestId");
+        this.traceId = MDC.get("traceId");
+    }
 
     /**
      * 成功响应（无数据）

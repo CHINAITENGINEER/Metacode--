@@ -15,6 +15,8 @@ import com.huakang.service.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,15 +97,25 @@ public class StaffServiceImpl implements StaffService {
                 .build();
     }
 
+    /**
+     * 根据用户名查询店员（带缓存）
+     * 缓存key: staffs::username:{username}
+     * 过期时间: 10分钟（在RedisConfig中配置）
+     */
     @Override
+    @Cacheable(value = "staffs", key = "'username:' + #username", unless = "#result == null")
     public Staff getByUsername(String username) {
         LambdaQueryWrapper<Staff> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Staff::getUsername, username);
         return staffMapper.selectOne(wrapper);
     }
 
+    /**
+     * 更新最后登录信息（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "staffs", allEntries = true)
     public void updateLastLoginInfo(Long staffId, String ipAddress) {
         Staff staff = new Staff();
         staff.setId(staffId);
@@ -112,8 +124,12 @@ public class StaffServiceImpl implements StaffService {
         staffMapper.updateById(staff);
     }
 
+    /**
+     * 增加登录失败次数（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "staffs", allEntries = true)
     public void incrementLoginFailCount(Long staffId) {
         Staff staff = staffMapper.selectById(staffId);
         if (staff != null) {
@@ -124,8 +140,12 @@ public class StaffServiceImpl implements StaffService {
         }
     }
 
+    /**
+     * 重置登录失败次数（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "staffs", allEntries = true)
     public void resetLoginFailCount(Long staffId) {
         Staff staff = new Staff();
         staff.setId(staffId);
@@ -134,8 +154,12 @@ public class StaffServiceImpl implements StaffService {
         staffMapper.updateById(staff);
     }
 
+    /**
+     * 锁定账号（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "staffs", allEntries = true)
     public void lockAccount(Long staffId, int lockMinutes) {
         Staff staff = new Staff();
         staff.setId(staffId);
@@ -171,7 +195,13 @@ public class StaffServiceImpl implements StaffService {
         return pageResult;
     }
 
+    /**
+     * 获取店员详情（带缓存）
+     * 缓存key: staffs::id:{staffId}
+     * 过期时间: 10分钟（在RedisConfig中配置）
+     */
     @Override
+    @Cacheable(value = "staffs", key = "'id:' + #staffId", unless = "#result == null")
     public StaffVO getStaffById(Long staffId) {
         Staff staff = staffMapper.selectById(staffId);
         if (staff == null || staff.getIsDeleted() == 1) {
@@ -203,8 +233,12 @@ public class StaffServiceImpl implements StaffService {
         return convertToVO(staff);
     }
 
+    /**
+     * 重置密码（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "staffs", key = "'id:' + #staffId")
     public void resetPassword(Long staffId, ResetPasswordDTO resetDTO) {
         Staff staff = staffMapper.selectById(staffId);
         if (staff == null || staff.getIsDeleted() == 1) {
@@ -219,8 +253,12 @@ public class StaffServiceImpl implements StaffService {
         staffMapper.updateById(updateStaff);
     }
 
+    /**
+     * 切换店员状态（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "staffs", key = "'id:' + #staffId")
     public void toggleStatus(Long staffId, Integer status) {
         Staff staff = staffMapper.selectById(staffId);
         if (staff == null || staff.getIsDeleted() == 1) {

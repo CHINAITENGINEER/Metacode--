@@ -9,6 +9,8 @@ import com.huakang.service.service.AdminService;
 import com.huakang.service.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,15 +86,25 @@ public class AdminServiceImpl implements AdminService {
                 .build();
     }
 
+    /**
+     * 根据用户名查询管理员（带缓存）
+     * 缓存key: admins::username:{username}
+     * 过期时间: 10分钟（在RedisConfig中配置）
+     */
     @Override
+    @Cacheable(value = "admins", key = "'username:' + #username", unless = "#result == null")
     public Admin getByUsername(String username) {
         LambdaQueryWrapper<Admin> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Admin::getUsername, username);
         return adminMapper.selectOne(wrapper);
     }
 
+    /**
+     * 更新最后登录信息（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "admins", allEntries = true)
     public void updateLastLoginInfo(Long adminId, String ipAddress) {
         Admin admin = new Admin();
         admin.setId(adminId);
@@ -101,8 +113,12 @@ public class AdminServiceImpl implements AdminService {
         adminMapper.updateById(admin);
     }
 
+    /**
+     * 增加登录失败次数（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "admins", allEntries = true)
     public void incrementLoginFailCount(Long adminId) {
         Admin admin = adminMapper.selectById(adminId);
         if (admin != null) {
@@ -113,8 +129,12 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
+    /**
+     * 重置登录失败次数（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "admins", allEntries = true)
     public void resetLoginFailCount(Long adminId) {
         Admin admin = new Admin();
         admin.setId(adminId);
@@ -123,8 +143,12 @@ public class AdminServiceImpl implements AdminService {
         adminMapper.updateById(admin);
     }
 
+    /**
+     * 锁定账号（清除缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "admins", allEntries = true)
     public void lockAccount(Long adminId, int lockMinutes) {
         Admin admin = new Admin();
         admin.setId(adminId);

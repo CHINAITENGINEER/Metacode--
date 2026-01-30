@@ -82,7 +82,13 @@ public class ProductServiceImpl implements ProductService {
         return pageResult;
     }
 
+    /**
+     * 获取商品详情（带缓存）
+     * 缓存key: products::id:{productId}
+     * 过期时间: 5分钟（在RedisConfig中配置）
+     */
     @Override
+    @Cacheable(value = "products", key = "'id:' + #productId", unless = "#result == null")
     public ProductVO getProductById(Long productId) {
         Product product = productMapper.selectById(productId);
         if (product == null) {
@@ -91,6 +97,9 @@ public class ProductServiceImpl implements ProductService {
         return convertToVO(product);
     }
 
+    /**
+     * 创建商品（清除列表缓存，新商品详情会自动缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "products", allEntries = true)
@@ -119,9 +128,12 @@ public class ProductServiceImpl implements ProductService {
         return convertToVO(product);
     }
 
+    /**
+     * 更新商品（精确清除缓存：只清除该商品的缓存和列表缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "products", allEntries = true)
+    @CacheEvict(value = "products", key = "'id:' + #productId")
     public ProductVO updateProduct(Long productId, UpdateProductDTO updateDTO) {
         Product product = productMapper.selectById(productId);
         if (product == null) {
@@ -176,6 +188,9 @@ public class ProductServiceImpl implements ProductService {
         return convertToVO(product);
     }
 
+    /**
+     * 删除商品（清除该商品的缓存和列表缓存）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "products", allEntries = true)
