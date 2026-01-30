@@ -44,6 +44,8 @@ public class SecurityConfig {
                 ).permitAll()
                 // 允许访问登录接口
                 .requestMatchers("/auth/**").permitAll()
+                // 允许访问健康检查接口（用于负载均衡器和监控）
+                .requestMatchers("/health/**").permitAll()
                 // 其他所有请求需要认证
                 .anyRequest().authenticated()
             );

@@ -41,31 +41,76 @@ services:
       timeout: 3s
       retries: 30
 
-  # backend:
-  #   # 你的后端代码落地后再启用这个服务：
-  #   # - 放一个 Dockerfile 在项目根目录（或 backend/ 下）
-  #   # - 在 .env 里配置 DB/Redis 连接
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: hk-backend
-  #   restart: unless-stopped
-  #   environment:
-  #     NODE_ENV: production
-  #     DB_HOST: mysql
-  #     DB_PORT: 3306
-  #     DB_NAME: ${MYSQL_DATABASE:-hk_electronics}
-  #     DB_USER: ${MYSQL_USER:-hk}
-  #     DB_PASSWORD: ${MYSQL_PASSWORD:-hk123456}
-  #     REDIS_HOST: redis
-  #     REDIS_PORT: 6379
-  #   ports:
-  #     - "${BACKEND_PORT:-3000}:3000"
-  #   depends_on:
-  #     mysql:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
+  # 后台管理服务
+  admin:
+    build:
+      context: ./backend
+      dockerfile: huakang-admin/Dockerfile
+    container_name: hk-admin
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-hk_electronics}
+      DB_USERNAME: ${MYSQL_USER:-hk}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-hk123456}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      OSS_ENDPOINT: ${OSS_ENDPOINT}
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET}
+      OSS_BUCKET_NAME: ${OSS_BUCKET_NAME}
+      OSS_DOMAIN: ${OSS_DOMAIN}
+    ports:
+      - "${ADMIN_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/admin/health/ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+
+  # 小程序服务
+  miniapp:
+    build:
+      context: ./backend
+      dockerfile: huakang-miniapp/Dockerfile
+    container_name: hk-miniapp
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-hk_electronics}
+      DB_USERNAME: ${MYSQL_USER:-hk}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-hk123456}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      WECHAT_APPID: ${WECHAT_APPID}
+      WECHAT_SECRET: ${WECHAT_SECRET}
+    ports:
+      - "${MINIAPP_PORT:-8081}:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/api/miniapp/health/ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
 
 volumes:
   mysql_data:

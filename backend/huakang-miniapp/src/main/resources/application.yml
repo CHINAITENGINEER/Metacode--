@@ -201,12 +201,12 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
-  # Redis配置
+  # Redis配置（生产环境必须设置密码）
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      password: ${REDIS_PASSWORD}  # 生产环境必须设置密码
       database: 0
       timeout: 3000ms
       lettuce:
@@ -219,14 +219,18 @@ spring:
   # 文件上传配置
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 100MB
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+  # 优雅停机配置
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
 # MyBatis-Plus配置（生产环境）
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.nop.NoLoggingImpl  # 生产环境关闭SQL日志
   global-config:
     db-config:
       id-type: auto
@@ -250,10 +254,10 @@ knife4j:
       - url: https://api.example.com
         description: 生产环境
 
-# JWT配置
+# JWT配置（生产环境必须设置JWT_SECRET环境变量）
 jwt:
-  secret: ${JWT_SECRET:huakang-electronics-production-secret-key-2024-please-change}
-  expiration: 7200000 # 2小时（毫秒）
+  secret: ${JWT_SECRET}  # 必须通过环境变量设置，不提供默认值
+  expiration: ${JWT_EXPIRATION:7200000} # 2小时（毫秒）
 
 # 微信小程序配置
 wechat:
@@ -265,6 +269,7 @@ server:
   port: ${SERVER_PORT:8081}
   servlet:
     context-path: /api/miniapp
+  shutdown: graceful  # 优雅停机
 
 # 日志配置
 logging:
