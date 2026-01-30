@@ -32,6 +32,14 @@ public interface MemberService {
     MemberVO getMemberById(Long memberId);
 
     /**
+     * 根据OpenID获取会员
+     *
+     * @param openid 微信OpenID
+     * @return 会员信息
+     */
+    MemberVO getMemberByOpenid(String openid);
+
+    /**
      * 创建会员
      *
      * @param createDTO 创建信息

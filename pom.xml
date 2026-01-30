@@ -14,11 +14,7 @@
     <description>华康会员积分及商品展示小程序后端系统</description>
 
     <modules>
-        <module>huakang-common</module>
-        <module>huakang-mapper</module>
-        <module>huakang-service</module>
-        <module>huakang-admin</module>
-        <module>huakang-miniapp</module>
+
     </modules>
 
     <properties>

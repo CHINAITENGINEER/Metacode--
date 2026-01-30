@@ -43,4 +43,9 @@ public class ProductListDTO implements Serializable {
      * 状态：1=上架，0=下架（可选）
      */
     private Integer status;
+
+    /**
+     * 是否删除：0=否，1=是（可选，默认为0）
+     */
+    private Integer isDeleted;
 }

@@ -12,9 +12,9 @@ spring:
       on-profile: dev
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3307/hk_electronics?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/hk_electronics?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password: 123456
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20
@@ -63,9 +63,19 @@ knife4j:
       - url: http://localhost:8081
         description: 开发环境
 
+# JWT配置
+jwt:
+  secret: huakang-electronics-secret-key-2024-please-change-in-production
+  expiration: 7200000 # 2小时（毫秒）
+
+# 微信小程序配置
+wechat:
+  appid: ${WECHAT_APPID:your-appid-here}
+  secret: ${WECHAT_SECRET:your-secret-here}
+
 # 应用配置
 server:
-  port: 8081
+  port: 8083
   servlet:
     context-path: /api/miniapp
 
@@ -151,6 +161,11 @@ jwt:
   secret: huakang-electronics-test-secret-key-2024
   expiration: 7200000 # 2小时（毫秒）
 
+# 微信小程序配置
+wechat:
+  appid: ${WECHAT_APPID:your-appid-here}
+  secret: ${WECHAT_SECRET:your-secret-here}
+
 # 应用配置
 server:
   port: ${TEST_SERVER_PORT:8081}
@@ -211,7 +226,7 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.nop.NoLoggingImpl
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: auto
@@ -239,6 +254,11 @@ knife4j:
 jwt:
   secret: ${JWT_SECRET:huakang-electronics-production-secret-key-2024-please-change}
   expiration: 7200000 # 2小时（毫秒）
+
+# 微信小程序配置
+wechat:
+  appid: ${WECHAT_APPID:your-appid-here}
+  secret: ${WECHAT_SECRET:your-secret-here}
 
 # 应用配置
 server:

@@ -76,6 +76,18 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    public MemberVO getMemberByOpenid(String openid) {
+        LambdaQueryWrapper<Member> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Member::getOpenid, openid)
+                .eq(Member::getIsDeleted, 0);
+        Member member = memberMapper.selectOne(wrapper);
+        if (member == null) {
+            return null;
+        }
+        return convertToVO(member);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public MemberVO createMember(CreateMemberDTO createDTO, Long operatorId, String operatorName, String operatorType) {
         // 检查手机号是否已存在

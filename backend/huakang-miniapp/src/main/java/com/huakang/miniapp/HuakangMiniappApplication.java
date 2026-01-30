@@ -1,5 +1,6 @@
 package com.huakang.miniapp;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -9,6 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author huakang
  */
 @SpringBootApplication(scanBasePackages = "com.huakang")
+@MapperScan("com.huakang.mapper")
 public class HuakangMiniappApplication {
 
     public static void main(String[] args) {

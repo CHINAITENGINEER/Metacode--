@@ -42,6 +42,14 @@ public class ProductServiceImpl implements ProductService {
         Page<Product> page = new Page<>(queryDTO.getPage(), queryDTO.getSize());
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
 
+        // 默认不查询已删除商品，除非特别指定
+        if (queryDTO.getIsDeleted() != null) {
+            wrapper.eq(Product::getIsDeleted, queryDTO.getIsDeleted());
+        } else {
+            // 默认只查询未删除的商品
+            wrapper.eq(Product::getIsDeleted, 0);
+        }
+
         // 构建查询条件
         if (queryDTO.getType() != null) {
             wrapper.eq(Product::getType, queryDTO.getType());
