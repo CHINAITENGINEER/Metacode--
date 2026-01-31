@@ -1,5 +1,6 @@
 package com.huakang.service.dto.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,35 +15,24 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "登录响应信息")
 public class LoginVO {
 
-    /**
-     * JWT Token
-     */
+    @Schema(description = "JWT Token（用于后续请求的身份认证）", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
     private String token;
 
-    /**
-     * 用户ID
-     */
+    @Schema(description = "用户ID", example = "1")
     private Long userId;
 
-    /**
-     * 用户名
-     */
+    @Schema(description = "用户名（登录账号）", example = "admin")
     private String username;
 
-    /**
-     * 姓名
-     */
+    @Schema(description = "姓名（真实姓名）", example = "张三")
     private String name;
 
-    /**
-     * 角色（admin/staff）
-     */
+    @Schema(description = "角色（admin=管理员，staff=店员）", example = "admin")
     private String role;
 
-    /**
-     * Token过期时间（秒）
-     */
+    @Schema(description = "Token过期时间（秒）", example = "7200")
     private Long expiresIn;
 }

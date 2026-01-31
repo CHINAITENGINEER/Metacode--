@@ -38,11 +38,9 @@ public class MiniappPointsController {
             return Result.error("请先登录");
         }
 
-        // 设置查询条件为当前用户
-        queryDTO.setMemberId(userId);
-        
-        // 查询积分记录（传入null作为操作人ID，因为这是用户查询自己的记录）
-        PageResult<PointsRecordVO> result = pointsRecordService.listRecords(queryDTO, null, "member");
+        // 小程序端：会员只能查看自己的积分记录
+        // 通过在Service层传入userId和userType="member"来实现数据权限控制
+        PageResult<PointsRecordVO> result = pointsRecordService.listRecords(queryDTO, userId, "member");
         return Result.success(result);
     }
 }

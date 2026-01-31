@@ -1,5 +1,6 @@
 package com.huakang.service.dto.system;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,47 +18,32 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "系统配置信息")
 public class SystemConfigVO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * 配置ID
-     */
+    @Schema(description = "配置ID", example = "1")
     private Long id;
 
-    /**
-     * 配置键
-     */
+    @Schema(description = "配置键（唯一标识）", example = "banner_images")
     private String configKey;
 
-    /**
-     * 配置值
-     */
+    @Schema(description = "配置值", example = "[\"https://example.com/banner1.jpg\"]")
     private String configValue;
 
-    /**
-     * 配置类型：string/number/json/boolean
-     */
+    @Schema(description = "配置类型（string=字符串，number=数字，json=JSON对象，boolean=布尔值）", example = "json")
     private String configType;
 
-    /**
-     * 配置分组
-     */
+    @Schema(description = "配置分组（用于分类管理）", example = "miniapp")
     private String configGroup;
 
-    /**
-     * 配置说明
-     */
+    @Schema(description = "配置说明", example = "小程序首页轮播图")
     private String description;
 
-    /**
-     * 配置版本号
-     */
+    @Schema(description = "配置版本号（用于缓存更新）", example = "1")
     private Integer version;
 
-    /**
-     * 更新时间
-     */
+    @Schema(description = "更新时间", example = "2025-01-01T10:00:00")
     private LocalDateTime updatedAt;
 }

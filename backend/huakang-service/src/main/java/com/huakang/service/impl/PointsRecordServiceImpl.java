@@ -36,25 +36,47 @@ public class PointsRecordServiceImpl implements PointsRecordService {
         Page<PointsRecord> page = new Page<>(queryDTO.getPage(), queryDTO.getSize());
         LambdaQueryWrapper<PointsRecord> wrapper = new LambdaQueryWrapper<>();
 
-        // 店员只能查看自己操作的记录
+        // 数据权限控制
         if ("staff".equals(currentOperatorType)) {
+            // 店员只能查看自己操作的记录
             wrapper.eq(PointsRecord::getOperatorType, "staff")
                     .eq(PointsRecord::getOperatorId, currentOperatorId);
+        } else if ("member".equals(currentOperatorType)) {
+            // 会员只能查看自己的积分记录
+            wrapper.eq(PointsRecord::getMemberId, currentOperatorId);
         }
+        // 管理员可以查看所有记录，不添加额外条件
 
-        // 按会员ID筛选
+        // 按会员ID筛选（精确匹配，优先级高于memberKeyword）
         if (queryDTO.getMemberId() != null) {
             wrapper.eq(PointsRecord::getMemberId, queryDTO.getMemberId());
+        } else if (queryDTO.getMemberKeyword() != null && !queryDTO.getMemberKeyword().trim().isEmpty()) {
+            // 按会员关键字筛选（昵称/手机号）
+            String keyword = queryDTO.getMemberKeyword().trim();
+            // 先查询符合条件的会员ID列表
+            LambdaQueryWrapper<Member> memberWrapper = new LambdaQueryWrapper<>();
+            memberWrapper.and(w -> w
+                    .like(Member::getNickname, keyword)
+                    .or().like(Member::getPhone, keyword)
+            );
+            List<Member> members = memberMapper.selectList(memberWrapper);
+            
+            if (members.isEmpty()) {
+                // 如果没有匹配的会员，返回空结果
+                wrapper.eq(PointsRecord::getMemberId, -1L);
+            } else {
+                // 使用会员ID列表进行筛选
+                List<Long> memberIds = members.stream()
+                        .map(Member::getId)
+                        .toList();
+                wrapper.in(PointsRecord::getMemberId, memberIds);
+            }
         }
 
-        // 按操作人类型筛选
-        if (queryDTO.getOperatorType() != null && !queryDTO.getOperatorType().trim().isEmpty()) {
-            wrapper.eq(PointsRecord::getOperatorType, queryDTO.getOperatorType().trim());
-        }
-
-        // 按操作人ID筛选
-        if (queryDTO.getOperatorId() != null) {
-            wrapper.eq(PointsRecord::getOperatorId, queryDTO.getOperatorId());
+        // 按操作人关键字筛选（操作人姓名）
+        if (queryDTO.getOperatorKeyword() != null && !queryDTO.getOperatorKeyword().trim().isEmpty()) {
+            String keyword = queryDTO.getOperatorKeyword().trim();
+            wrapper.like(PointsRecord::getOperatorName, keyword);
         }
 
         // 按时间范围筛选

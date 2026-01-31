@@ -1,5 +1,6 @@
 package com.huakang.service.dto.member;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,47 +18,32 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "会员信息")
 public class MemberVO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * 会员ID
-     */
+    @Schema(description = "会员ID", example = "1")
     private Long id;
 
-    /**
-     * 微信OpenID
-     */
+    @Schema(description = "微信OpenID", example = "oxxxxxxxxxxxxxxxxxxxxxx")
     private String openid;
 
-    /**
-     * 微信昵称
-     */
+    @Schema(description = "会员昵称", example = "张三")
     private String nickname;
 
-    /**
-     * 微信头像URL
-     */
+    @Schema(description = "头像URL", example = "https://example.com/avatar.jpg")
     private String avatar;
 
-    /**
-     * 手机号
-     */
+    @Schema(description = "手机号", example = "13800138000")
     private String phone;
 
-    /**
-     * 当前积分总额
-     */
+    @Schema(description = "当前积分总额", example = "1000")
     private Integer totalPoints;
 
-    /**
-     * 创建时间
-     */
+    @Schema(description = "创建时间（注册时间）", example = "2025-01-01T10:00:00")
     private LocalDateTime createdAt;
 
-    /**
-     * 更新时间
-     */
+    @Schema(description = "更新时间", example = "2025-01-01T10:00:00")
     private LocalDateTime updatedAt;
 }

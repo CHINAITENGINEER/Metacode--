@@ -34,7 +34,7 @@ public class PointsRecordController {
     /**
      * 分页查询积分记录列表
      */
-    @Operation(summary = "积分记录列表", description = "分页查询积分记录，支持按会员、操作人、时间范围筛选。店员只能查看自己的记录")
+    @Operation(summary = "积分记录列表", description = "分页查询积分记录，支持按会员关键字（昵称/手机号）、操作人关键字（姓名）、时间范围筛选。店员只能查看自己的记录")
     @GetMapping("/list")
     public Result<PageResult<PointsRecordVO>> listRecords(PointsRecordListDTO queryDTO, HttpServletRequest request) {
         Long currentOperatorId = userContext.getCurrentUserId(request);

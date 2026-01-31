@@ -1,5 +1,6 @@
 package com.huakang.service.dto.points;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,67 +18,44 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "积分记录信息")
 public class PointsRecordVO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * 记录ID
-     */
+    @Schema(description = "记录ID", example = "1")
     private Long id;
 
-    /**
-     * 会员ID
-     */
+    @Schema(description = "会员ID", example = "1")
     private Long memberId;
 
-    /**
-     * 会员昵称
-     */
+    @Schema(description = "会员昵称", example = "张三")
     private String memberNickname;
 
-    /**
-     * 会员手机号
-     */
+    @Schema(description = "会员手机号", example = "13800138000")
     private String memberPhone;
 
-    /**
-     * 变动类型
-     */
+    @Schema(description = "变动类型（如：购买商品、消费抵扣、系统调整等）", example = "购买商品")
     private String changeType;
 
-    /**
-     * 变动分值
-     */
+    @Schema(description = "变动分值（正数表示增加，负数表示扣除）", example = "100")
     private Integer points;
 
-    /**
-     * 变动前积分余额
-     */
+    @Schema(description = "变动前积分余额", example = "500")
     private Integer balanceBefore;
 
-    /**
-     * 变动后积分余额
-     */
+    @Schema(description = "变动后积分余额", example = "600")
     private Integer balanceAfter;
 
-    /**
-     * 操作人类型
-     */
+    @Schema(description = "操作人类型（admin=管理员，staff=店员，system=系统）", example = "staff")
     private String operatorType;
 
-    /**
-     * 操作人姓名
-     */
+    @Schema(description = "操作人姓名", example = "李四")
     private String operatorName;
 
-    /**
-     * 变动时间
-     */
+    @Schema(description = "变动时间", example = "2025-01-01T10:00:00")
     private LocalDateTime createdAt;
 
-    /**
-     * 备注
-     */
+    @Schema(description = "备注说明", example = "购买商品赠送")
     private String remark;
 }
