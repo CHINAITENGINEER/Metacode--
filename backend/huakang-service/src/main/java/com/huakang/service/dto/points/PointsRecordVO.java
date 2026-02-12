@@ -58,4 +58,10 @@ public class PointsRecordVO implements Serializable {
 
     @Schema(description = "备注说明", example = "购买商品赠送")
     private String remark;
+
+    @Schema(description = "关联商品ID", example = "1")
+    private Long productId;
+
+    @Schema(description = "关联商品名称（从products表的name字段获取）", example = "海尔冰箱")
+    private String productName;
 }

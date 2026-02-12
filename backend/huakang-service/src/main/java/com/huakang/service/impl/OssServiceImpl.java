@@ -39,8 +39,16 @@ public class OssServiceImpl implements OssService {
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
     };
 
-    // 最大文件大小：10MB
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
+    // 允许的视频格式
+    private static final String[] ALLOWED_VIDEO_TYPES = {
+            "video/mp4", "video/mpeg", "video/quicktime", "video/x-msvideo", "video/x-ms-wmv"
+    };
+
+    // 最大图片大小：10MB
+    private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+
+    // 最大视频大小：100MB
+    private static final long MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
     @Override
     public String uploadImage(MultipartFile file, String folder) {
@@ -50,7 +58,7 @@ public class OssServiceImpl implements OssService {
         }
 
         // 1. 验证文件
-        validateFile(file);
+        validateImageFile(file);
 
         try {
             // 2. 生成文件路径
@@ -75,6 +83,82 @@ public class OssServiceImpl implements OssService {
         } catch (Exception e) {
             log.error("图片上传失败", e);
             throw new BusinessException("图片上传失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public java.util.List<String> uploadMediaFiles(java.util.List<MultipartFile> files, String folder) {
+        if (ossClient == null) {
+            throw new BusinessException("OSS未配置，请先配置阿里云OSS相关信息");
+        }
+
+        if (files == null || files.isEmpty()) {
+            throw new BusinessException("文件列表不能为空");
+        }
+
+        java.util.List<String> urls = new java.util.ArrayList<>();
+        int imageCount = 0;
+        int videoCount = 0;
+
+        for (MultipartFile file : files) {
+            String contentType = file.getContentType();
+            if (contentType == null) {
+                throw new BusinessException("无法识别文件类型：" + file.getOriginalFilename());
+            }
+
+            String url;
+            if (isAllowedImageType(contentType)) {
+                // 上传图片
+                url = uploadImage(file, folder);
+                imageCount++;
+            } else if (isAllowedVideoType(contentType)) {
+                // 上传视频
+                url = uploadVideo(file, folder);
+                videoCount++;
+            } else {
+                throw new BusinessException("不支持的文件类型：" + contentType + "，仅支持图片（JPG/PNG/GIF/WebP）和视频（MP4/MOV/AVI/WMV/MPEG）");
+            }
+            urls.add(url);
+        }
+
+        log.info("批量上传媒体文件成功，共{}个文件（图片{}张，视频{}个）", urls.size(), imageCount, videoCount);
+        return urls;
+    }
+
+    /**
+     * 上传视频到OSS（内部方法，供uploadMediaFiles调用）
+     */
+    private String uploadVideo(MultipartFile file, String folder) {
+        if (ossClient == null) {
+            throw new BusinessException("OSS未配置，请先配置阿里云OSS相关信息");
+        }
+
+        // 1. 验证视频文件
+        validateVideoFile(file);
+
+        try {
+            // 2. 生成文件路径
+            String fileName = generateFileName(file, folder);
+
+            // 3. 上传到OSS
+            InputStream inputStream = file.getInputStream();
+            PutObjectRequest putObjectRequest = new PutObjectRequest(
+                    ossConfig.getBucketName(),
+                    fileName,
+                    inputStream
+            );
+
+            ossClient.putObject(putObjectRequest);
+            inputStream.close();
+
+            // 4. 构建访问URL
+            String fileUrl = buildFileUrl(fileName);
+            log.info("视频上传成功：{} -> {}", fileName, fileUrl);
+
+            return fileUrl;
+        } catch (Exception e) {
+            log.error("视频上传失败", e);
+            throw new BusinessException("视频上传失败：" + e.getMessage());
         }
     }
 
@@ -104,22 +188,42 @@ public class OssServiceImpl implements OssService {
     }
 
     /**
-     * 验证文件
+     * 验证图片文件
      */
-    private void validateFile(MultipartFile file) {
+    private void validateImageFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException("文件不能为空");
         }
 
         // 检查文件大小
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new BusinessException("文件大小不能超过10MB");
+        if (file.getSize() > MAX_IMAGE_SIZE) {
+            throw new BusinessException("图片大小不能超过10MB");
         }
 
         // 检查文件类型
         String contentType = file.getContentType();
         if (contentType == null || !isAllowedImageType(contentType)) {
-            throw new BusinessException("不支持的文件类型，仅支持：JPG、PNG、GIF、WebP");
+            throw new BusinessException("不支持的图片类型，仅支持：JPG、PNG、GIF、WebP");
+        }
+    }
+
+    /**
+     * 验证视频文件
+     */
+    private void validateVideoFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException("文件不能为空");
+        }
+
+        // 检查文件大小
+        if (file.getSize() > MAX_VIDEO_SIZE) {
+            throw new BusinessException("视频大小不能超过100MB");
+        }
+
+        // 检查文件类型
+        String contentType = file.getContentType();
+        if (contentType == null || !isAllowedVideoType(contentType)) {
+            throw new BusinessException("不支持的视频类型，仅支持：MP4、MOV、AVI、WMV、MPEG");
         }
     }
 
@@ -128,6 +232,18 @@ public class OssServiceImpl implements OssService {
      */
     private boolean isAllowedImageType(String contentType) {
         for (String allowedType : ALLOWED_IMAGE_TYPES) {
+            if (allowedType.equalsIgnoreCase(contentType)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 检查是否为允许的视频类型
+     */
+    private boolean isAllowedVideoType(String contentType) {
+        for (String allowedType : ALLOWED_VIDEO_TYPES) {
             if (allowedType.equalsIgnoreCase(contentType)) {
                 return true;
             }
@@ -149,15 +265,7 @@ public class OssServiceImpl implements OssService {
             // 根据ContentType推断扩展名
             String contentType = file.getContentType();
             if (contentType != null) {
-                if (contentType.contains("jpeg") || contentType.contains("jpg")) {
-                    extension = ".jpg";
-                } else if (contentType.contains("png")) {
-                    extension = ".png";
-                } else if (contentType.contains("gif")) {
-                    extension = ".gif";
-                } else if (contentType.contains("webp")) {
-                    extension = ".webp";
-                }
+                extension = getExtensionByContentType(contentType);
             }
         }
 
@@ -179,6 +287,35 @@ public class OssServiceImpl implements OssService {
         } else {
             return pathPrefix + datePath + "/" + uuid + extension;
         }
+    }
+
+    /**
+     * 根据ContentType获取文件扩展名
+     */
+    private String getExtensionByContentType(String contentType) {
+        // 图片类型
+        if (contentType.contains("jpeg") || contentType.contains("jpg")) {
+            return ".jpg";
+        } else if (contentType.contains("png")) {
+            return ".png";
+        } else if (contentType.contains("gif")) {
+            return ".gif";
+        } else if (contentType.contains("webp")) {
+            return ".webp";
+        }
+        // 视频类型
+        else if (contentType.contains("mp4")) {
+            return ".mp4";
+        } else if (contentType.contains("quicktime")) {
+            return ".mov";
+        } else if (contentType.contains("x-msvideo")) {
+            return ".avi";
+        } else if (contentType.contains("x-ms-wmv")) {
+            return ".wmv";
+        } else if (contentType.contains("mpeg")) {
+            return ".mpeg";
+        }
+        return "";
     }
 
     /**

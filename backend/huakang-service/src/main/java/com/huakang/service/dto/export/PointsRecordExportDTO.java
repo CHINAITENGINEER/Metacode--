@@ -47,7 +47,10 @@ public class PointsRecordExportDTO {
     @ExcelProperty(value = "备注", index = 10)
     private String remark;
 
-    @ExcelProperty(value = "操作时间", index = 11)
+    @ExcelProperty(value = "关联商品", index = 11)
+    private String productName;
+
+    @ExcelProperty(value = "操作时间", index = 12)
     @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 }

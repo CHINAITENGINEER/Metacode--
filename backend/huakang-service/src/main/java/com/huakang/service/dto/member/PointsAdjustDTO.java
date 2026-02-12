@@ -1,5 +1,6 @@
 package com.huakang.service.dto.member;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -57,4 +58,16 @@ public class PointsAdjustDTO implements Serializable {
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "备注不能为空")
     private String remark;
+
+    /**
+     * 关联商品ID（可选）
+     * 如果本次积分变动是因为某个商品引起的，可以关联商品ID
+     * 例如：购买商品赠送积分、积分兑换商品等场景
+     * 映射到商品表的 id 字段（products.id）
+     */
+    @Schema(description = "关联商品ID（可选，如果本次积分变动与商品相关）", 
+            example = "1",
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @JsonProperty("productId")
+    private Long productId;
 }

@@ -42,13 +42,12 @@ public class ProductServiceImpl implements ProductService {
         Page<Product> page = new Page<>(queryDTO.getPage(), queryDTO.getSize());
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
 
-        // 默认不查询已删除商品，除非特别指定
+        // 处理逻辑删除过滤
+        // 如果明确指定查询已删除商品（is_deleted=1），需要手动添加条件（会覆盖@TableLogic的自动过滤）
         if (queryDTO.getIsDeleted() != null) {
             wrapper.eq(Product::getIsDeleted, queryDTO.getIsDeleted());
-        } else {
-            // 默认只查询未删除的商品
-            wrapper.eq(Product::getIsDeleted, 0);
         }
+        // 如果未指定is_deleted，MyBatis-Plus的@TableLogic会自动添加is_deleted=0的条件
 
         // 构建查询条件
         if (queryDTO.getType() != null) {
@@ -118,6 +117,14 @@ public class ProductServiceImpl implements ProductService {
         if (createDTO.getDetailImages() != null && !createDTO.getDetailImages().isEmpty()) {
             try {
                 product.setDetailImages(objectMapper.writeValueAsString(createDTO.getDetailImages()));
+                
+                // 如果主图为空，自动将详情图的第一张图片（非视频）设置为主图
+                if (product.getImage() == null || product.getImage().isEmpty()) {
+                    String firstImage = getFirstImageUrl(createDTO.getDetailImages());
+                    if (firstImage != null) {
+                        product.setImage(firstImage);
+                    }
+                }
             } catch (Exception e) {
                 log.error("转换详情图片为JSON失败", e);
                 throw new BusinessException("详情图片格式错误");
@@ -157,6 +164,14 @@ public class ProductServiceImpl implements ProductService {
         if (updateDTO.getDetailImages() != null) {
             try {
                 product.setDetailImages(objectMapper.writeValueAsString(updateDTO.getDetailImages()));
+                
+                // 如果主图为空，自动将详情图的第一张图片（非视频）设置为主图
+                if (product.getImage() == null || product.getImage().isEmpty()) {
+                    String firstImage = getFirstImageUrl(updateDTO.getDetailImages());
+                    if (firstImage != null) {
+                        product.setImage(firstImage);
+                    }
+                }
             } catch (Exception e) {
                 log.error("转换详情图片为JSON失败", e);
                 throw new BusinessException("详情图片格式错误");
@@ -189,7 +204,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * 删除商品（清除该商品的缓存和列表缓存）
+     * 下架商品（设置is_deleted=1 和 status=0）
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -199,8 +214,27 @@ public class ProductServiceImpl implements ProductService {
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
-        // 使用MyBatis-Plus的逻辑删除
-        productMapper.deleteById(productId);
+        // 下架商品：设置is_deleted=1（逻辑删除）和status=0（下架）
+        product.setIsDeleted(1);
+        product.setStatus(0);
+        productMapper.updateById(product);
+    }
+
+    /**
+     * 上架商品（恢复商品，设置is_deleted=0 和 status=1）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "products", allEntries = true)
+    public void onlineProduct(Long productId) {
+        // 直接更新is_deleted和status字段，因为MyBatis-Plus的逻辑删除会过滤已删除记录
+        Product product = new Product();
+        product.setId(productId);
+        product.setIsDeleted(0);
+        product.setStatus(1);
+        int result = productMapper.updateById(product);
+        if (result == 0) {
+            throw new BusinessException("商品不存在或已是上架状态");
+        }
     }
 
     /**
@@ -218,6 +252,14 @@ public class ProductServiceImpl implements ProductService {
                         new TypeReference<List<String>>() {}
                 );
                 vo.setDetailImages(detailImages);
+                
+                // 如果主图为空，自动将详情图的第一张图片（非视频）设置为主图
+                if (vo.getImage() == null || vo.getImage().isEmpty()) {
+                    String firstImage = getFirstImageUrl(detailImages);
+                    if (firstImage != null) {
+                        vo.setImage(firstImage);
+                    }
+                }
             } catch (Exception e) {
                 log.warn("解析详情图片JSON失败: {}", e.getMessage());
                 vo.setDetailImages(List.of());
@@ -227,5 +269,38 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return vo;
+    }
+
+    /**
+     * 从URL列表中获取第一张图片URL（排除视频）
+     */
+    private String getFirstImageUrl(List<String> urls) {
+        if (urls == null || urls.isEmpty()) {
+            return null;
+        }
+        
+        for (String url : urls) {
+            if (url != null && !url.isEmpty() && !isVideoUrl(url)) {
+                return url;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * 判断URL是否为视频
+     */
+    private boolean isVideoUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return false;
+        }
+        // 根据文件扩展名判断是否为视频
+        String lowerUrl = url.toLowerCase();
+        return lowerUrl.endsWith(".mp4") || 
+               lowerUrl.endsWith(".mov") || 
+               lowerUrl.endsWith(".avi") || 
+               lowerUrl.endsWith(".wmv") || 
+               lowerUrl.endsWith(".mpeg");
     }
 }

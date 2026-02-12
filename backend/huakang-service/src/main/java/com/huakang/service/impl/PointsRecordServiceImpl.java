@@ -5,8 +5,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.huakang.common.core.PageResult;
 import com.huakang.mapper.MemberMapper;
 import com.huakang.mapper.PointsRecordMapper;
+import com.huakang.mapper.ProductMapper;
 import com.huakang.mapper.entity.Member;
 import com.huakang.mapper.entity.PointsRecord;
+import com.huakang.mapper.entity.Product;
 import com.huakang.service.dto.points.PointsRecordListDTO;
 import com.huakang.service.dto.points.PointsRecordVO;
 import com.huakang.service.service.PointsRecordService;
@@ -30,6 +32,7 @@ public class PointsRecordServiceImpl implements PointsRecordService {
 
     private final PointsRecordMapper pointsRecordMapper;
     private final MemberMapper memberMapper;
+    private final ProductMapper productMapper;
 
     @Override
     public PageResult<PointsRecordVO> listRecords(PointsRecordListDTO queryDTO, Long currentOperatorId, String currentOperatorType) {
@@ -107,6 +110,24 @@ public class PointsRecordServiceImpl implements PointsRecordService {
                     .collect(Collectors.toMap(Member::getId, member -> member));
         }
 
+        // 批量查询商品信息
+        List<Long> productIds = result.getRecords().stream()
+                .map(PointsRecord::getProductId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+        
+        Map<Long, Product> productMap;
+        if (productIds.isEmpty()) {
+            productMap = Map.of();
+        } else {
+            LambdaQueryWrapper<Product> productWrapper = new LambdaQueryWrapper<>();
+            productWrapper.in(Product::getId, productIds);
+            List<Product> products = productMapper.selectList(productWrapper);
+            productMap = products.stream()
+                    .collect(Collectors.toMap(Product::getId, product -> product));
+        }
+
         // 转换为VO
         PageResult<PointsRecordVO> pageResult = new PageResult<>();
         pageResult.setTotal(result.getTotal());
@@ -114,7 +135,8 @@ public class PointsRecordServiceImpl implements PointsRecordService {
         pageResult.setCurrent(result.getCurrent());
         pageResult.setSize(result.getSize());
         pageResult.setRecords(result.getRecords().stream()
-                .map(record -> convertToVO(record, memberMap.get(record.getMemberId())))
+                .map(record -> convertToVO(record, memberMap.get(record.getMemberId()), 
+                        record.getProductId() != null ? productMap.get(record.getProductId()) : null))
                 .toList());
 
         return pageResult;
@@ -123,7 +145,7 @@ public class PointsRecordServiceImpl implements PointsRecordService {
     /**
      * 转换为VO
      */
-    private PointsRecordVO convertToVO(PointsRecord record, Member member) {
+    private PointsRecordVO convertToVO(PointsRecord record, Member member, Product product) {
         PointsRecordVO vo = PointsRecordVO.builder()
                 .id(record.getId())
                 .memberId(record.getMemberId())
@@ -137,6 +159,8 @@ public class PointsRecordServiceImpl implements PointsRecordService {
                 .operatorName(record.getOperatorName())
                 .createdAt(record.getCreatedAt())
                 .remark(record.getRemark())
+                .productId(record.getProductId())
+                .productName(product != null ? product.getName() : null)
                 .build();
         return vo;
     }

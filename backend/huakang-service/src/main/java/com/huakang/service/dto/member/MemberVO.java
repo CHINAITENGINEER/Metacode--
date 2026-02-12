@@ -46,4 +46,7 @@ public class MemberVO implements Serializable {
 
     @Schema(description = "更新时间", example = "2025-01-01T10:00:00")
     private LocalDateTime updatedAt;
+
+    @Schema(description = "关联商品名称（调整积分时如果关联了商品，会返回商品名称）", example = "海尔冰箱")
+    private String productName;
 }

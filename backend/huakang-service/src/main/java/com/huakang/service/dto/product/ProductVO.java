@@ -1,5 +1,6 @@
 package com.huakang.service.dto.product;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,6 +27,7 @@ public class ProductVO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "商品ID", example = "1")
+    @JsonProperty("id")
     private Long id;
 
     @Schema(description = "商品名称", example = "华康电器洗衣机")

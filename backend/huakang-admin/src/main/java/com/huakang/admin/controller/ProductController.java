@@ -76,7 +76,7 @@ public class ProductController {
     /**
      * 下架商品
      */
-    @Operation(summary = "下架商品", description = "下架商品（软删除）")
+    @Operation(summary = "下架商品", description = "下架商品（设置is_deleted=1 和 status=0）")
     @DeleteMapping("/{id}")
     public Result<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
@@ -84,12 +84,34 @@ public class ProductController {
     }
 
     /**
-     * 图片上传接口
+     * 上架商品
      */
-    @Operation(summary = "图片上传", description = "上传商品图片到OSS，返回图片URL")
-    @PostMapping("/upload")
-    public Result<String> uploadImage(@RequestParam("file") MultipartFile file) {
-        String imageUrl = ossService.uploadImage(file, "products");
-        return Result.success("上传成功", imageUrl);
+    @Operation(summary = "上架商品", description = "重新上架商品（设置is_deleted=0 和 status=1）")
+    @PutMapping("/{id}/online")
+    public Result<Void> onlineProduct(@PathVariable Long id) {
+        productService.onlineProduct(id);
+        return Result.<Void>success("上架成功", null);
+    }
+
+    /**
+     * 批量上传图片和视频
+     */
+    @Operation(summary = "批量上传媒体文件", description = "批量上传商品图片和视频到OSS，支持混合上传，返回文件URL列表（按上传顺序）")
+    @PostMapping("/upload-batch")
+    public Result<java.util.List<String>> uploadMediaFiles(@RequestParam("files") java.util.List<MultipartFile> files) {
+        java.util.List<String> urls = ossService.uploadMediaFiles(files, "products");
+        return Result.success("批量上传成功", urls);
+    }
+
+    /**
+     * 查询下架商品列表
+     */
+    @Operation(summary = "下架商品列表", description = "分页查询已下架的商品列表（is_deleted=1）")
+    @GetMapping("/offline")
+    public Result<PageResult<ProductVO>> listOfflineProducts(ProductListDTO queryDTO) {
+        // 强制设置is_deleted=1，查询下架商品
+        queryDTO.setIsDeleted(1);
+        PageResult<ProductVO> result = productService.listProducts(queryDTO);
+        return Result.success(result);
     }
 }

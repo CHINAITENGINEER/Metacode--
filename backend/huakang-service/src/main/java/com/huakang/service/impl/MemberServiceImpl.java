@@ -6,8 +6,10 @@ import com.huakang.common.core.PageResult;
 import com.huakang.common.exception.BusinessException;
 import com.huakang.mapper.MemberMapper;
 import com.huakang.mapper.PointsRecordMapper;
+import com.huakang.mapper.ProductMapper;
 import com.huakang.mapper.entity.Member;
 import com.huakang.mapper.entity.PointsRecord;
+import com.huakang.mapper.entity.Product;
 import com.huakang.service.dto.member.CreateMemberDTO;
 import com.huakang.service.dto.member.MemberListDTO;
 import com.huakang.service.dto.member.MemberVO;
@@ -149,6 +151,15 @@ public class MemberServiceImpl implements MemberService {
             throw new BusinessException("会员不存在");
         }
 
+        // 如果指定了关联商品ID，先验证商品是否存在并获取商品信息
+        Product product = null;
+        if (adjustDTO.getProductId() != null) {
+            product = productMapper.selectById(adjustDTO.getProductId());
+            if (product == null || product.getIsDeleted() == 1) {
+                throw new BusinessException("关联的商品不存在或已删除");
+            }
+        }
+
         Integer balanceBefore = member.getTotalPoints() != null ? member.getTotalPoints() : 0;
         Integer balanceAfter;
         Integer points;
@@ -194,9 +205,18 @@ public class MemberServiceImpl implements MemberService {
         record.setOperatorName(operatorName);
         record.setRemark(adjustDTO.getRemark());
         record.setIpAddress(ipAddress);
+        // 如果指定了关联商品ID，设置到积分记录中
+        if (adjustDTO.getProductId() != null) {
+            record.setProductId(adjustDTO.getProductId());
+        }
         pointsRecordMapper.insert(record);
 
-        return convertToVO(member);
+        // 转换为VO并设置商品名称（如果有关联商品）
+        MemberVO memberVO = convertToVO(member);
+        if (product != null) {
+            memberVO.setProductName(product.getName());
+        }
+        return memberVO;
     }
 
     /**

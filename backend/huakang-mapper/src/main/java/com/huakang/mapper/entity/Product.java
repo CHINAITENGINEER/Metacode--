@@ -25,8 +25,9 @@ public class Product {
 
     /**
      * 商品名称
+     * 映射到数据库字段：name
      */
-    @TableField("name")
+    @TableField(value = "name", exist = true)
     private String name;
 
     /**

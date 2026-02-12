@@ -47,9 +47,16 @@ public interface ProductService {
     ProductVO updateProduct(Long productId, UpdateProductDTO updateDTO);
 
     /**
-     * 下架商品（软删除）
+     * 下架商品（设置is_deleted=1 和 status=0）
      *
      * @param productId 商品ID
      */
     void deleteProduct(Long productId);
+
+    /**
+     * 上架商品（恢复商品，设置is_deleted=0 和 status=1）
+     *
+     * @param productId 商品ID
+     */
+    void onlineProduct(Long productId);
 }

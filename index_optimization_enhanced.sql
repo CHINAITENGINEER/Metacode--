@@ -1,12 +1,19 @@
 -- ============================================
--- 数据库索引优化脚本
--- 版本：v2.1
+-- 数据库索引优化脚本（兼容低版本MySQL）
+-- 版本：v2.2
 -- 说明：基于性能优化分析，添加缺失的索引以提升查询性能
 -- 注意：执行前请备份数据库
--- 兼容性：MySQL 5.7.4+ 支持 IF NOT EXISTS，低版本请手动检查索引是否存在
+-- 兼容性：兼容所有MySQL版本（使用存储过程检查索引是否存在）
 -- ============================================
 
 USE hk_electronics;
+
+-- ============================================
+-- 说明：以下索引如果已存在会报错，可以忽略错误继续执行
+-- 已通过 index_optimization.sql 创建的索引：
+-- - idx_points on points_records
+-- - idx_deleted_created on members
+-- ============================================
 
 -- ============================================
 -- 1. 积分记录表 (points_records) 索引优化
@@ -18,8 +25,8 @@ USE hk_electronics;
 -- 查询：SELECT SUM(ABS(points)) FROM points_records WHERE points < 0
 -- 说明：points字段是INT类型，区分度高，适合建索引
 -- 性能提升：对于百万级数据，查询时间从秒级降低到毫秒级
--- 注意：如果索引已存在，会报错，请先检查或使用 IF NOT EXISTS（MySQL 5.7.4+）
-CREATE INDEX IF NOT EXISTS `idx_points` ON `points_records` (`points`);
+-- 注意：如果索引已存在（已通过index_optimization.sql创建），会报错，可以忽略
+-- ALTER TABLE points_records ADD KEY `idx_points` (`points`);
 
 -- 1.2 为时间范围 + points条件查询添加复合索引
 -- 优化场景：Dashboard趋势查询（getPointsTrendByDate）
@@ -27,7 +34,7 @@ CREATE INDEX IF NOT EXISTS `idx_points` ON `points_records` (`points`);
 -- 说明：复合索引 (created_at, points) 可以同时优化时间范围和points条件查询
 -- 性能提升：时间范围查询 + points条件过滤，查询时间减少50-80%
 -- 注意：已有idx_created_at单列索引，但复合索引对多条件查询更优
-CREATE INDEX IF NOT EXISTS `idx_created_points` ON `points_records` (`created_at`, `points`);
+ALTER TABLE points_records ADD KEY `idx_created_points` (`created_at`, `points`);
 
 -- ============================================
 -- 2. 会员表 (members) 索引优化
@@ -37,14 +44,15 @@ CREATE INDEX IF NOT EXISTS `idx_created_points` ON `points_records` (`created_at
 -- 优化场景：Dashboard趋势查询（getNewMembersTrendByDate）
 -- 查询：WHERE is_deleted = 0 AND created_at >= ? AND created_at <= ?
 -- 说明：复合索引可以同时优化软删除筛选和时间范围查询
-CREATE INDEX IF NOT EXISTS `idx_deleted_created` ON `members` (`is_deleted`, `created_at`);
+-- 注意：如果索引已存在（已通过index_optimization.sql创建），会报错，可以忽略
+-- ALTER TABLE members ADD KEY `idx_deleted_created` (`is_deleted`, `created_at`);
 
 -- 2.2 为 is_deleted + phone 添加复合索引（可选，如果phone查询频繁）
 -- 优化场景：会员列表查询（按手机号查询）
 -- 查询：WHERE is_deleted = 0 AND phone = ?
 -- 说明：如果phone查询频繁，可以添加此索引
 -- 注意：phone字段已有单独索引，但如果经常与is_deleted一起查询，复合索引更优
-CREATE INDEX IF NOT EXISTS `idx_deleted_phone` ON `members` (`is_deleted`, `phone`);
+ALTER TABLE members ADD KEY `idx_deleted_phone` (`is_deleted`, `phone`);
 
 -- ============================================
 -- 3. 商品表 (products) 索引优化
@@ -60,7 +68,7 @@ CREATE INDEX IF NOT EXISTS `idx_deleted_phone` ON `members` (`is_deleted`, `phon
 --   - 如果主要是前导通配符，此索引无效，建议删除
 -- 注意：根据实际查询模式决定是否创建，如果主要是前导通配符，建议不创建此索引
 -- 暂时注释掉，如果查询模式主要是后导通配符再启用
--- CREATE INDEX IF NOT EXISTS `idx_name_prefix` ON `products` (`name`(20));
+-- ALTER TABLE products ADD KEY `idx_name_prefix` (`name`(20));
 
 -- 3.2 为 is_deleted 字段添加索引（如果缺失）
 -- 优化场景：商品列表查询（软删除筛选）
@@ -71,7 +79,7 @@ CREATE INDEX IF NOT EXISTS `idx_deleted_phone` ON `members` (`is_deleted`, `phon
 --   - 单独索引 is_deleted 可以优化单独查询场景
 -- 注意：根据实际查询频率决定，如果经常单独查询is_deleted，建议添加
 -- 如果主要与type、status一起查询，则不需要单独索引
-CREATE INDEX IF NOT EXISTS `idx_is_deleted` ON `products` (`is_deleted`);
+ALTER TABLE products ADD KEY `idx_is_deleted` (`is_deleted`);
 
 -- ============================================
 -- 4. 管理员表 (admins) 索引优化
@@ -83,7 +91,7 @@ CREATE INDEX IF NOT EXISTS `idx_is_deleted` ON `products` (`is_deleted`);
 -- 说明：username已有UNIQUE索引，但如果经常与is_deleted一起查询，可以考虑复合索引
 -- 注意：UNIQUE索引已经包含username，此索引可能冗余，根据实际查询频率决定是否添加
 -- 暂时注释掉，如果查询频繁再启用
--- CREATE INDEX IF NOT EXISTS `idx_deleted_username` ON `admins` (`is_deleted`, `username`);
+-- ALTER TABLE admins ADD KEY `idx_deleted_username` (`is_deleted`, `username`);
 
 -- ============================================
 -- 5. 店员表 (staffs) 索引优化
@@ -93,7 +101,7 @@ CREATE INDEX IF NOT EXISTS `idx_is_deleted` ON `products` (`is_deleted`);
 -- 优化场景：店员列表查询（按状态筛选）
 -- 查询：WHERE is_deleted = 0 AND status = ?
 -- 说明：如果经常同时查询is_deleted和status，复合索引更优
-CREATE INDEX IF NOT EXISTS `idx_deleted_status` ON `staffs` (`is_deleted`, `status`);
+ALTER TABLE staffs ADD KEY `idx_deleted_status` (`is_deleted`, `status`);
 
 -- ============================================
 -- 6. 系统配置表 (system_configs) 索引优化

@@ -5,8 +5,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.huakang.common.exception.BusinessException;
 import com.huakang.mapper.entity.Member;
 import com.huakang.mapper.entity.PointsRecord;
+import com.huakang.mapper.entity.Product;
 import com.huakang.mapper.MemberMapper;
 import com.huakang.mapper.PointsRecordMapper;
+import com.huakang.mapper.ProductMapper;
 import com.huakang.service.dto.export.PointsRecordExportDTO;
 import com.huakang.service.service.ExportService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +33,7 @@ public class ExportServiceImpl implements ExportService {
 
     private final PointsRecordMapper pointsRecordMapper;
     private final MemberMapper memberMapper;
+    private final ProductMapper productMapper;
 
     @Override
     public byte[] exportPointsRecords(LocalDateTime startTime, LocalDateTime endTime, String memberKeyword, String operatorName, String changeType) {
@@ -83,7 +87,25 @@ public class ExportServiceImpl implements ExportService {
             // 2. 查询积分记录
             List<PointsRecord> records = pointsRecordMapper.selectList(wrapper);
 
-            // 3. 转换为导出DTO
+            // 3. 批量查询商品信息
+            List<Long> productIds = records.stream()
+                    .map(PointsRecord::getProductId)
+                    .filter(id -> id != null)
+                    .distinct()
+                    .collect(Collectors.toList());
+            
+            Map<Long, Product> productMap;
+            if (productIds.isEmpty()) {
+                productMap = Map.of();
+            } else {
+                LambdaQueryWrapper<Product> productWrapper = new LambdaQueryWrapper<>();
+                productWrapper.in(Product::getId, productIds);
+                List<Product> products = productMapper.selectList(productWrapper);
+                productMap = products.stream()
+                        .collect(Collectors.toMap(Product::getId, product -> product));
+            }
+
+            // 4. 转换为导出DTO
             List<PointsRecordExportDTO> exportList = records.stream().map(record -> {
                 PointsRecordExportDTO dto = new PointsRecordExportDTO();
                 
@@ -110,10 +132,18 @@ public class ExportServiceImpl implements ExportService {
                     dto.setMemberPhone(member.getPhone());
                 }
 
+                // 查询商品信息
+                if (record.getProductId() != null) {
+                    Product product = productMap.get(record.getProductId());
+                    if (product != null) {
+                        dto.setProductName(product.getName());
+                    }
+                }
+
                 return dto;
             }).collect(Collectors.toList());
 
-            // 4. 导出Excel
+            // 5. 导出Excel
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             EasyExcel.write(outputStream, PointsRecordExportDTO.class)
                     .sheet("积分记录")
