@@ -34,7 +34,7 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class MemberServiceImpl implements MemberService {
-
+    private final ProductMapper productMapper;
     private final MemberMapper memberMapper;
     private final PointsRecordMapper pointsRecordMapper;
 

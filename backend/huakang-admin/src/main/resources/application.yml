@@ -260,7 +260,7 @@ mybatis-plus:
 
 # Knife4j配置（生产环境建议关闭或限制访问）
 knife4j:
-  enable: false
+  enable: true  # 临时开启，生产环境建议关闭
   openapi:
     title: 华康电器连锁积分小程序 - 后台管理API
     description: 管理员端、店员端接口文档

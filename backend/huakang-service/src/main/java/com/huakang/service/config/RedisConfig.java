@@ -74,9 +74,13 @@ public class RedisConfig {
      * 为不同的缓存区域设置不同的过期时间
      */
     @Bean
+    @SuppressWarnings({"deprecation", "removal"})
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         // 创建支持Java 8时间类型的序列化器
         ObjectMapper cacheMapper = createObjectMapper();
+        // 启用默认类型信息，解决泛型反序列化问题
+        cacheMapper.activateDefaultTyping(cacheMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.NON_FINAL);
+        
         GenericJackson2JsonRedisSerializer cacheSerializer = new GenericJackson2JsonRedisSerializer(cacheMapper);
 
         // 默认缓存配置：5分钟过期
